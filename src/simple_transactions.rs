@@ -33,7 +33,7 @@ async fn main() -> Result<()> {
     let first_balance = provider.get_balance(first_address, None).await?;
     println!("Wallet first address balance: {}", first_balance);
 
-//Get balance of another wallet in eth, this address is new
+//Get balance of a random wallet in eth, it doesnt exist but it gives its balance anyway, this address is new
     let other_address_hex = "0xaf206dCE72A0ef76643dfeDa34DB764E2126E646";
     let other_address = "0xaf206dCE72A0ef76643dfeDa34DB764E2126E646".parse::<Address>()?;
     let other_balance = provider.get_balance(other_address, None).await?;
@@ -64,6 +64,10 @@ async fn main() -> Result<()> {
         provider.get_balance(other_address, None).await?
     );
 
+    println!(
+        "Remain balance of local wallet is {}",
+        provider.get_balance(first_address, None).await?
+    );
 
-    return Result::Ok(());
+    return Ok(())
 }
