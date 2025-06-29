@@ -8,7 +8,6 @@ use eyre::{ContextCompat, Result};
 use hex::ToHex;
 
 
-use std::process::Command;
 
 #[tokio::main]
 async fn main() -> Result<()> {
