@@ -6,7 +6,6 @@ use ethers::prelude::{
 use ethers::solc::Artifact;
 use ethers::utils::Ganache;
 use ethers_providers::{Middleware, Provider};
-use ethers_solc::Artifact;
 use eyre::Result;
 use eyre::{eyre, ContextCompat};
 use hex::ToHex;
@@ -38,9 +37,9 @@ async fn main() -> Result<()> {
     println!("Ganache started with chain_id {chain_id}");
 
 //Compile solidity projects and print them
-    let project = compile("example/").await?;
+    let project = compile("examples/").await?;
 
-    print_project(&project);
+    print_project(project.clone()).await?;
 
     let balance = provider.get_balance(wallet.address(), None).await?;
     println!(
@@ -73,9 +72,11 @@ async fn main() -> Result<()> {
         .await?
         .context("Failed to get block")?;
 
-    let gas_price = block 
+ /*    let gas_price: U256 = block 
         .next_block_base_fee()
-        .context("Faolñed to get the base free for the next block")?;
+        .context("Failed to get the base free for the next block")?;
+*/
+    let gas_price = provider.get_gas_price().await?;
 
     deployer.tx.set_gas_price::<U256>(gas_price);
 
@@ -89,15 +90,65 @@ async fn main() -> Result<()> {
 }
 
 pub async fn compile(root: &str) -> Result<ProjectCompileOutput<ConfigurableArtifacts>> {
-/*     let root = PathBuf::from(root);
+    let root = PathBuf::from(root);
     if !root.exists(){
         return Err(eyre!("Project root  {root:?} does not exists"));
     }
 
-    let paths = ProjectPathsConfig
-*/
+    let paths = ProjectPathsConfig::builder()
+        .root(&root)
+        .sources(&root)
+        .build()?;
+
+    let project = Project::builder()
+        .paths(paths)
+        .set_auto_detect(true)
+        .no_artifacts()
+        .build()?;
+    
+    let output = project.compile()?;
+
+    if output.has_compiler_errors(){
+        Err(eyre!("Compiling solidity project failed: {:?}", output.output().errors))
+    }else
+    {
+        Ok(output.clone())
+    }
+
 }
 
-pub async fn print_project(project: &ProjectCompileOutput<ConfigurableArtifacts>) -> Result<()>{
+pub async fn print_project(project: ProjectCompileOutput<ConfigurableArtifacts>) -> Result<()>{
+    let artifacts = project.into_artifacts();
 
+    for (id,artifact) in artifacts{
+        let name= id.name;
+        let abi = artifact.abi.context("No ABI found for artifact {name}")?;
+
+        println!(
+            "{}", "=".repeat(80)
+        );
+        println!(
+            "CONTRACT: {:?}",
+            name
+        );
+
+        let contract = &abi.abi;
+        let functions = contract.functions();
+        let functions = functions.cloned();
+        let constructor = contract.constructor();
+
+        if let Some(constructor) = constructor{
+            let args = &constructor.inputs;
+            println!(
+                "CONSTRUCTOR args: {args:?}"
+            );
+        }
+        for func in functions{
+            let name = &func.name;
+            let params = &func.inputs;
+            println!("FUNCTION {name} {params:?}");
+        }
+    }
+
+    return Ok(());
 }
