@@ -19,6 +19,9 @@ tracing-subscriber = "0.3.11"
 name = "transact"
 path="src/simple_transactions.rs"
 
+[[bin]]
+name = "real_transact"
+path="src/real_transactions.rs"
 
 [[bin]]
 name = "deploy"
